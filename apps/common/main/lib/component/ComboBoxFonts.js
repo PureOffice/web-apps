@@ -798,6 +798,50 @@ define([
                         }
                     }
                 }
+
+                // [OHOS: userfont-img] 用户自导入字体的名字图：下拉项显示的是
+                //「用该字体渲染的名字」（官方桌面版运行时由 native 生成整表，
+                // 本工程走构建期静态精灵图——用户字体运行时才注册，精灵里没有
+                // 它的格子，项文字空白）。渲染真路径即本方法：name 与 tiles[j]
+                // 一一对应，直接在官方格子上重画名字标识（默认字体即可，真实
+                // 效果由引擎渲染）。格高 28 档、字 20px、左起 10px、黑字透明底，
+                // 与 make_fonts_sprites 同款画法；data 标记防重画（滚动重建
+                // tiles[j] 后再次命中）。名字清单 __lso_user_font_names 由
+                // 引擎侧注册表注入时填充。
+                this._ohosFixUserFontTiles();
+            },
+
+            _ohosFixUserFontTiles: function() {
+                try {
+                    var _uf = window['__lso_user_font_names'];
+                    if (!_uf || !_uf.length || !this.store || !this.tiles)
+                        return;
+                    var me = this;
+                    for (var j = 0; j < me.store.length; ++j) {
+                        var _cv = me.tiles[j];
+                        if (!_cv || !_cv.getContext)
+                            continue;
+                        if (_cv.getAttribute && _cv.getAttribute('data-ohos-uf') === '1')
+                            continue;
+                        var _nm = String(me.store.at(j).get('name') || '');
+                        if (_uf.indexOf(_nm) < 0)
+                            continue;
+                        var _cx = _cv.getContext('2d');
+                        if (!_cx)
+                            continue;
+                        _cx.clearRect(0, 0, _cv.width, _cv.height);
+                        _cx.fillStyle = '#000000';
+                        _cx.font = Math.max(10, Math.round(_cv.height * 0.71)) + 'px sans-serif';
+                        _cx.textBaseline = 'middle';
+                        _cx.fillText(_nm, Math.round(_cv.width / 30), Math.round(_cv.height / 2));
+                        if (_cv.setAttribute)
+                            _cv.setAttribute('data-ohos-uf', '1');
+                        console.error('LSO_UFONT_IMG drawn j=' + j + ' name=' + _nm
+                            + ' canvas=' + _cv.width + 'x' + _cv.height);
+                    }
+                } catch (_fe) {
+                    console.error('LSO_UFONT_IMG_FIX_ERR ' + String(_fe));
+                }
             },
 
             flushVisibleFontsTiles: function() {
