@@ -111,7 +111,8 @@
                     "findNestedDependencies": false,
                     "optimizeAllPluginResources": false,
                     "paths": {
-                        "text": "../vendor/requirejs-text/text"
+                        "text": "../vendor/requirejs-text/text",
+                        "backbone": "empty:"
                     }
                 }
             },
@@ -392,7 +393,6 @@
     },
     "tasks": {
         "deploy": [
-            "increment-build",
             "deploy-app-main",
             "deploy-app-mobile",
             "deploy-app-embed"
