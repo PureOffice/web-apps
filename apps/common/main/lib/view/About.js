@@ -44,6 +44,61 @@ define([
     'common/main/lib/component/Scroller'
 ], function () { 'use strict';
 
+    // [OHOS: lic-dialog] 许可/声明全文弹层（原 ascshim 55_lic 注入段源码化）：
+    // 全屏遮罩 + iframe srcdoc 渲染本地文本；点遮罩框外关闭。
+    var __ohosLicMask = null, __ohosLicTitle = null, __ohosLicFrame = null;
+    function __ohosShowLicDialog(href, titleText) {
+        if (!__ohosLicMask) {
+            __ohosLicMask = document.createElement('div');
+            __ohosLicMask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100001;display:none;';
+            var _box = document.createElement('div');
+            _box.style.cssText = 'position:absolute;width:84%;height:84%;left:8%;top:8%;' +
+                'background:#fff;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;' +
+                'box-shadow:0 6px 30px rgba(0,0,0,.3);';
+            var _bar = document.createElement('div');
+            _bar.style.cssText = 'height:44px;background:#f2f2f2;flex:none;display:flex;' +
+                'align-items:center;justify-content:space-between;padding:0 14px;';
+            __ohosLicTitle = document.createElement('span');
+            __ohosLicTitle.style.cssText = 'color:#444;font-size:14px;';
+            var _close = document.createElement('button');
+            _close.textContent = '✕ 关闭';
+            _close.style.cssText = 'border:none;background:transparent;color:#444;font-size:16px;' +
+                'cursor:pointer;padding:4px 8px;';
+            _close.onclick = function () { __ohosLicMask.style.display = 'none'; };
+            _bar.appendChild(__ohosLicTitle);
+            _bar.appendChild(_close);
+            __ohosLicFrame = document.createElement('iframe');
+            __ohosLicFrame.style.cssText = 'flex:1;border:none;width:100%;background:#fff;';
+            _box.appendChild(_bar);
+            _box.appendChild(__ohosLicFrame);
+            __ohosLicMask.appendChild(_box);
+            __ohosLicMask.addEventListener('click', function (e) {
+                if (e.target === __ohosLicMask) { __ohosLicMask.style.display = 'none'; }
+            });
+            document.body.appendChild(__ohosLicMask);
+        }
+        // 打开时把其下的官方 dialog（欢迎页 AboutDialog 等原生 <dialog class="dlg">）
+        // 关掉——遮罩全屏覆盖，下面叠着面板无意义
+        try {
+            document.querySelectorAll('dialog.dlg').forEach(function (d) {
+                if (typeof d.close === 'function') { d.close(); }
+            });
+        } catch (e) {}
+        __ohosLicTitle.textContent = titleText;
+        __ohosLicFrame.srcdoc = '<pre style="white-space:pre-wrap;padding:20px 24px;font:12px/1.6 monospace;color:#333;">加载中…</pre>';
+        __ohosLicMask.style.display = 'block';
+        fetch(href)
+            .then(function (r) { return r.text(); })
+            .then(function (txt) {
+                var esc = String(txt).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                __ohosLicFrame.srcdoc = '<pre style="white-space:pre-wrap;padding:20px 24px;' +
+                    'font:12px/1.6 monospace;color:#333;">' + esc + '</pre>';
+            })
+            .catch(function () {
+                __ohosLicFrame.srcdoc = '<pre style="padding:20px 24px;color:#c00;">加载失败：' + href + '</pre>';
+            });
+    }
+
     Common.Views.About = Common.UI.BaseView.extend(_.extend({
         menu: undefined,
         rendered: false,
@@ -67,13 +122,23 @@ define([
                         '<td align="center"><div class="asc-about-office"></div></td>',
                     '</tr>',
                     '<tr>',
-                        '<td align="center"><label class="asc-about-version">' + options.appName.toUpperCase() + '</label></td>',
+                        // [OHOS: about-brand] appName 为主品牌主视觉（Pure Office，
+                        // 保形不上转；asc-about-brand 样式在 about.less）
+                        '<td align="center"><label class="asc-about-brand">' + options.appName + '</label></td>',
                     '</tr>',
                     '<tr>',
                         '<td align="center"><label class="asc-about-version" id="id-about-licensor-version-name">' + this.txtVersion + this.txtVersionNum + '</label></td>',
                     '</tr>',
+                    // [OHOS: about-brand] 归属/许可行 + 源码/声明行（AGPL §6 对应源码
+                    // 可得 + 官方附加条款 3 识别原始开发者/修改版声明；点击 lic-open
+                    // 链接由 render 尾的弹层渲染全文，不走 target=_blank——ArkWeb 无
+                    // 多窗口语义）
+                    '<tr><td align="center"><label class="asc-about-lic asc-about-note">基于 ONLYOFFICE DesktopEditors（<a class="link lic-open" href="/onlyoffice/licenses/LICENSE.txt">AGPL-3.0</a>）</label></td></tr>',
+                    '<tr><td align="center"><label class="asc-about-lic asc-about-note">完整源码与第三方声明见&nbsp;<a class="link lic-open" href="/onlyoffice/licenses/NOTICE.txt">NOTICE</a></label></td></tr>',
                 '</table>',
-                '<table id="id-about-licensor-info" cols="3" style="width: 100%;" class="margin-bottom">',
+                // [OHOS: about-brand] licensor 公司信息表整体隐藏（归属声明保留在随包
+                // LICENSE/NOTICE 与源码头，官方附加条款不要求 UI 展示联系方式）
+                '<table id="id-about-licensor-info" cols="3" style="width: 100%;" class="hidden margin-bottom">',
                     '<tr>',
                         '<td colspan="3" align="center" style="padding: 20px 0 10px 0;"><label class="asc-about-companyname"><%= publishername %></label></td>',
                     '</tr>',
@@ -106,7 +171,8 @@ define([
                         '<td align="center" class="padding-small"><div id="id-about-company-logo"></div></td>',
                     '</tr>',
                     '<tr>',
-                        '<td align="center"><label class="asc-about-version">' + options.appName.toUpperCase()  + '</label></td>',
+                        // [OHOS: about-brand] 同 licensor：保形 + 主视觉 class
+                        '<td align="center"><label class="asc-about-brand">' + options.appName  + '</label></td>',
                     '</tr>',
                     '<tr>',
                         '<td align="center"><label style="padding-bottom: 29px;" class="asc-about-version" id="id-about-licensee-version-name">' + this.txtVersion + this.txtVersionNum + '</label></td>',
@@ -199,6 +265,18 @@ define([
                         suppressScrollX: true
                     });
                 }
+
+                // [OHOS: lic-dialog] 许可/声明全文弹层（ArkWeb 无多窗口，链接点击
+                // 由源内弹层渲染——fetch 文本 → iframe srcdoc，不依赖服务器 MIME）。
+                // 原通用拦截器（ascshim 55_lic 注入段按 target=_blank+localhost 全局
+                // 捕获拦截）由此收敛为面板内精准触发。
+                this.$el.off('click', 'a.lic-open').on('click', 'a.lic-open', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var href = $(this).attr('href');
+                    __ohosShowLicDialog(href, /\/NOTICE\.txt$/i.test(href) ? '第三方声明与源码获取' : '许可证文本');
+                    return false;
+                });
             }
 
             return this;

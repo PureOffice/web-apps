@@ -168,7 +168,9 @@ define([
             this.btnNavigation.on('click',         this.onBtnMenuClick.bind(this));
 
             this.menuFile = new DE.Views.FileMenu();
-            this.btnAbout.panel = new Common.Views.About({el: '#about-menu-panel', appName: this.txtEditor});
+            // [OHOS: about-brand] About 面板主品牌 = Pure Office（官方编辑器名仅作
+            // 归属声明的基底，见 About.js 模板归属行）
+            this.btnAbout.panel = new Common.Views.About({el: '#about-menu-panel', appName: 'Pure Office'});
 
             this.btnThumbnails = new Common.UI.Button({
                 el: $markup.elementById('#left-btn-thumbnails'),

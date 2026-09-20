@@ -157,7 +157,9 @@ define([
             this.btnSpellcheck.on('click',      _.bind(this.onBtnMenuClick, this));
 
             this.menuFile = new SSE.Views.FileMenu({});
-            this.btnAbout.panel = (new Common.Views.About({el: '#about-menu-panel', appName: this.txtEditor}));
+            // [OHOS: about-brand] About 面板主品牌 = Pure Office（官方编辑器名仅作
+            // 归属声明的基底，见 About.js 模板归属行）
+            this.btnAbout.panel = (new Common.Views.About({el: '#about-menu-panel', appName: 'Pure Office'}));
 
             this.$el.html($markup);
 

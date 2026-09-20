@@ -3,16 +3,38 @@
         background-repeat: no-repeat;
         margin-bottom: 5px;
 
+        // [OHOS: about-brand] 官方 logo 图示清除（图示内含超大 ONLYOFFICE 字样——
+        // 主品牌为 Pure Office，官方仅作 AGPL 归属声明）；亮/暗两变体同灭。
+        // content:none 使伪元素不生成
         &:before {
-            content: ~"url('@{common-image-const-path}/about/logo_s.svg')";
+            content: none;
 
             .theme-type-dark & {
-                content: ~"url('@{common-image-const-path}/about/logo-white_s.svg')";
+                content: none;
             }
 
             height: 45px;
             width: auto;
         }
+    }
+
+    // [OHOS: about-brand] appName 主视觉大字（官方 logo 撤下后它是面板顶部唯一
+    // 主视觉；顶部留白 40px + 与版本行间距 10px——零 logo 后重排面板重心下移）
+    .asc-about-brand {
+        font: bold 24px Tahoma;
+        letter-spacing: .02em;
+        color: #444;
+        color: @text-normal-ie;
+        color: @text-normal;
+        user-select: text;
+        margin: 40px 0 10px;
+    }
+
+    // [OHOS: about-brand] 归属/许可与源码/声明行：note 类块级行距
+    .asc-about-note {
+        display: block;
+        padding: 4px 0;
+        line-height: 1.7;
     }
 
     .asc-about-header {
@@ -70,6 +92,14 @@
         color: @text-normal-ie;
         color: @text-normal;
         user-select: text;
+    }
+
+    // [OHOS: about-brand] 归属行里的「AGPL-3.0」/「NOTICE」是许可全文/声明入口
+    // （源内 lic-open 弹层）——上面 `.about-dlg a` 把面板内链接染成正文色，链接
+    // 嵌在句中会完全看不出可点；恢复链接色（选择器更具体，不依赖书写顺序）
+    .asc-about-note a {
+        color: @text-link-ie;
+        color: @text-link;
     }
 
     .separator.horizontal {
