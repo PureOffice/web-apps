@@ -42,7 +42,7 @@
 if (Common === undefined)
     var Common = {};
 
-define([], function () { 'use strict';
+define(['common/main/lib/component/BaseView'], function () { 'use strict';
 
     Common.UI.ColorPaletteExt = Common.UI.BaseView.extend({
         options: {
