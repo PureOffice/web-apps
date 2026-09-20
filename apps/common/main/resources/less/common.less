@@ -780,3 +780,11 @@ body {
     padding-left: 0;
     padding-right: 0;
 }
+
+// [OHOS: filemenu] 文件菜单「导出为 PDF」隐藏（官方显隐条件与「另存为」完全
+// 相同、customization 无单项开关——JS/DOM 层隐藏实测败于「菜单每次打开重置
+// inline style 且模板离线挂载」，stylesheet !important 恒胜非 important 的
+// inline 声明，元素无论何时入 DOM、菜单重建多少次恒隐藏）
+#fm-btn-export-pdf {
+    display: none !important;
+}

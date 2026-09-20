@@ -79,8 +79,30 @@
         }
 
     // localstorage.setItem('ui-theme-id', 'theme-white');
-    !window.uitheme.id && window.uitheme.set_id(localstorage.getItem("ui-theme-id"));
+    // [OHOS: theme-default] 未设置过时默认「经典浅色」（官方兜底为跟随系统，
+    // 实测 body 恒落 theme-white——AscDesktopEditor 桌面段在本壳 web 语义下
+    // 跳过、RPV 无人消费，见 2026-09-08 三连排查）。用户设置过的键值优先
+    // （setTheme 写同一键）；替代注入层对 localStorage 的预写。
+    !window.uitheme.id && window.uitheme.set_id(localstorage.getItem("ui-theme-id") || 'theme-classic-light');
     window.uitheme.iscontentdark = localstorage.getItem("content-theme") == 'dark';
+
+    // [OHOS: rpv] RendererProcessVariable 兜底：官方桌面段（index.html 内联
+    // if(window.AscDesktopEditor)）建 RPV——本壳 web 语义下该段跳过，而
+    // panelsettings.js 的 localthemes for..of 与 desktopinit 的 RPV.theme 读取
+    // 无保护会抛错。theme 字段取同源值（与上面 uitheme 决议一致，避免双链冲突）。
+    if ( !window.RendererProcessVariable ) {
+        let _ohosThemeType = 'light';
+        if ( window.uitheme.id == 'theme-system' ) {
+            try { _ohosThemeType = window.uitheme.is_system_theme_dark() ? 'dark' : 'light'; } catch (e) { _ohosThemeType = 'light'; }
+        } else if ( /-dark$/.test(window.uitheme.id || '') || window.uitheme.id == 'theme-night' ) {
+            _ohosThemeType = 'dark';
+        }
+        window.RendererProcessVariable = {
+            theme: { id: window.uitheme.id, type: _ohosThemeType },
+            localthemes: [],   // panelsettings.js 用 for..of 迭代 → 必须数组
+            rtl: false
+        };
+    }
 
     function inject_style_tag(content, id) {
         if ( id && !!document.getElementById(id) )
