@@ -2565,6 +2565,20 @@ define([
             },
 
             onPrintQuick: function() {
+                // [OHOS: print] 本壳 canQuickPrint=false（系统打印框必弹，"静默快速
+                // 打印"语义不成立）→ 官方首行 return 使按钮成「死按钮」（显隐走壳层
+                // webapps:features 通路，本壳不通但按钮照常渲染）。直通 asc_Print
+                //（引擎侧 [OHOS: print] 分支汇入系统打印框）；官方"将使用上次选择
+                // 的打印机"确认框不成立——系统打印框自己就是选择/确认步骤。
+                if (!this.appOptions.canQuickPrint
+                        && window.AscNative && typeof window.AscNative._call === 'function') {
+                    var _ohosPrintOpt = new Asc.asc_CAdjustPrint();
+                    _ohosPrintOpt.asc_setNativeOptions({quickPrint: true});
+                    var _ohosOpts = new Asc.asc_CDownloadOptions();
+                    _ohosOpts.asc_setAdvancedOptions(_ohosPrintOpt);
+                    this.api.asc_Print(_ohosOpts);
+                    return;
+                }
                 if (!this.appOptions.canQuickPrint) return;
 
                 var value = Common.localStorage.getBool("pe-hide-quick-print-warning"),

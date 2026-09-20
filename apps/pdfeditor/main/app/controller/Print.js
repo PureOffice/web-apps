@@ -77,6 +77,25 @@ define([
             this.views = this.getApplication().getClasseRefs('view', ['PrintWithPreview']);
             this.printSettings = this.createView('PrintWithPreview');
             this.setMode(this.mode);
+
+            // [OHOS: print] 打印面板打印机列表自报：官方由壳层发 printer:config 事件
+            // （index.html if(!!native) 段）→ setPrintersInfo；本壳无该通路 → 下拉
+            // 恒空，onPrinterSelected 的 btnPrint.setDisabled(!record) 使「打印」
+            // 按钮恒灰。HarmonyOS 打印由系统对话框呈现（@ohos.print），无法枚举
+            // 型号，报一项「系统打印」占位——选中即解禁，点击汇入 asc_Print 引擎侧
+            // [OHOS: print] 分支。挂 show：此刻 isVisible() 才为真，setPrintersInfo
+            // 内 updateCmbPrinter 分支才会执行（否则只更新 _state，下拉不刷新）。
+            (function (ctrl) {
+                var _name = '系统打印';
+                ctrl.printSettings.on('show', function () {
+                    ctrl.setPrintersInfo(_name, [{
+                        name: _name,
+                        color_supported: true,
+                        duplex_supported: true,
+                        paper_supported: null
+                    }], false);
+                });
+            })(this);
         },
 
         onAfterRender: function(view) {
