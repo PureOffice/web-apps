@@ -261,23 +261,27 @@ define([
         var _onTitleButtonDisabled = function (action, e, status) {
             var _buttons = {};
             _buttons[action] = status;
-            native.execCommand('title:button', JSON.stringify({disabled: _buttons}));
+            // [OHOS: native-guard] 见 _onSaveIconChanged
+            !!native && native.execCommand('title:button', JSON.stringify({disabled: _buttons}));
         };
 
         var _onSaveIconChanged = function (e, opts) {
-            native.execCommand('title:button', JSON.stringify({'icon:changed': {'save': btnsave_icons[opts.next]}}));
+            // [OHOS: native-guard] 离线壳无原生标题栏接收方，native 为 undefined 时
+            // 裸调 execCommand 抛 TypeError 中断 Backbone trigger 同步链（后续 handler 全跳过）
+            !!native && native.execCommand('title:button', JSON.stringify({'icon:changed': {'save': btnsave_icons[opts.next]}}));
         };
 
         var _onModalDialog = function (status) {
+            // [OHOS: native-guard] 同 _onSaveIconChanged：通知原生层职责在离线壳为空操作
             if ( status == 'open' ) {
-                native.execCommand('title:button', JSON.stringify({disabled: {'all':true}}));
+                !!native && native.execCommand('title:button', JSON.stringify({disabled: {'all':true}}));
             } else {
                 var _buttons = {};
                 for (var i in titlebuttons) {
                     _buttons[i] = titlebuttons[i].btn.isDisabled();
                 }
 
-                native.execCommand('title:button', JSON.stringify({'disabled': _buttons}));
+                !!native && native.execCommand('title:button', JSON.stringify({'disabled': _buttons}));
             }
         };
 
@@ -296,7 +300,8 @@ define([
                 !!titlebuttons['startover'] && (info.hints['startover'] = titlebuttons['startover'].btn.btnEl.attr('data-hint-title-lang'));
             }
 
-            native.execCommand('althints:show', JSON.stringify(info));
+            // [OHOS: native-guard] 见 _onSaveIconChanged
+            !!native && native.execCommand('althints:show', JSON.stringify(info));
         }
 
         var _onKeyDown = function (e) {
@@ -438,7 +443,9 @@ define([
             features.viewmode = !window.PDFE ? !mode.isEdit : !!mode.isXpsViewer;
             features.viewmode && (features.btnhome = false);
             features.crypted = mode.isCrypted;
-            native.execCommand('webapps:features', JSON.stringify(features));
+            // [OHOS: native-guard] 见 _onSaveIconChanged（getViewportSettings 的成员
+            // 访问在 native 为 undefined 时同样抛，一并守卫）
+            !!native && native.execCommand('webapps:features', JSON.stringify(features));
 
             titlebuttons = {};
             if ( !features.viewmode ) {
@@ -446,7 +453,7 @@ define([
 
                 {
                     let viewport;
-                    if ( native.getViewportSettings ) {
+                    if ( native && native.getViewportSettings ) {
                         viewport = native.getViewportSettings();
                     }
 
@@ -463,21 +470,24 @@ define([
                     titlebuttons['home'] = {btn: header.btnHome};
 
                     header.btnHome.on('click', function (e) {
-                        native.execCommand('title:button', JSON.stringify({click: "home"}));
+                        // [OHOS: native-guard] 见 _onSaveIconChanged
+                        !!native && native.execCommand('title:button', JSON.stringify({click: "home"}));
                     });
 
                     $('#id-box-doc-name').on({
+                        // [OHOS: native-guard] 见 _onSaveIconChanged（标题栏原生拖拽通知，
+                        // 离线壳无原生标题栏，四事件全为空操作）
                         'dblclick': function (e) {
-                            native.execCommand('title:dblclick', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
+                            !!native && native.execCommand('title:dblclick', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
                         },
                         'mousedown': function (e) {
-                            native.execCommand('title:mousedown', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
+                            !!native && native.execCommand('title:mousedown', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
                         },
                         'mousemove': function (e) {
-                            native.execCommand('title:mousemove', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
+                            !!native && native.execCommand('title:mousemove', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
                         },
                         'mouseup': function (e) {
-                            native.execCommand('title:mouseup', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
+                            !!native && native.execCommand('title:mouseup', JSON.stringify({x: e.originalEvent.screenX, y: e.originalEvent.screenY}))
                         }
                     });
                 }
@@ -528,7 +538,8 @@ define([
                 delete config.callback_editorconfig;
             }
 
-            if ( native.features.singlewindow !== undefined ) {
+            // [OHOS: native-guard] 见 _onSaveIconChanged（native.features 成员访问同抛）
+            if ( native && native.features.singlewindow !== undefined ) {
                 if ( config.isFillFormApp )
                     $("#title-doc-name")[native.features.singlewindow ? 'hide' : 'show']();
 
@@ -570,7 +581,8 @@ define([
         }
 
         const _onChangeQuickAccess = function (props) {
-            native.execCommand("quickaccess:changed", JSON.stringify(props));
+            // [OHOS: native-guard] 见 _onSaveIconChanged
+            !!native && native.execCommand("quickaccess:changed", JSON.stringify(props));
         }
 
         const _extend_menu_file = function (args) {
@@ -618,12 +630,14 @@ define([
                         'modal:hide': _onModalDialog.bind(this, 'hide'),
                         'uitheme:changed' : function (name, caller) {
                             if ( caller != 'native' ) {
+                                // [OHOS: native-guard] 见 _onSaveIconChanged；不守卫时
+                                // 抛错中断 trigger 链 = 主题只切一半（工具栏停留旧主题）
                                 if (window.uitheme.is_theme_system()) {
-                                    native.execCommand("uitheme:changed", JSON.stringify({name: 'theme-system'}));
+                                    !!native && native.execCommand("uitheme:changed", JSON.stringify({name: 'theme-system'}));
                                 } else {
                                     var theme = Common.UI.Themes.get(name);
                                     if (theme)
-                                        native.execCommand("uitheme:changed", JSON.stringify({
+                                        !!native && native.execCommand("uitheme:changed", JSON.stringify({
                                             name: name,
                                             type: theme.type
                                         }));
