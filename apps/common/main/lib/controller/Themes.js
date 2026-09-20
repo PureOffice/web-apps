@@ -384,6 +384,28 @@ define([
             }
         };
 
+        // [OHOS: theme] tab 主题色上报（宿主 tab 条选中色跟随文档主题）。权威数据源
+        // = 主题 CSS 自定义属性（--toolbar-header-<app>，colors-table-<theme>.less
+        // 定义），getComputedStyle 直读、零硬编码色值。本函数在 apply_theme 尾部
+        // （一切主题切换路径的唯一 body class 写者）与 init 尾部（初始主题由
+        // themeinit 同步写 body class，不走 apply_theme）各调用一次——替代旧
+        // 「readyState 轮询 + MutationObserver」注入（时序语义等价、挂点官方化）。
+        const ohos_report_theme_color = function () {
+            try {
+                if ( !(window.AscNative && typeof window.AscNative._call === 'function') ) return;
+                const p = window.location.pathname || '';
+                const app = p.indexOf('/spreadsheeteditor/') >= 0 ? 'spreadsheet'
+                    : p.indexOf('/presentationeditor/') >= 0 ? 'presentation'
+                    : p.indexOf('/documenteditor/') >= 0 ? 'document' : '';
+                if ( !app || !document.body ) return;
+                const c = getComputedStyle(document.body).getPropertyValue('--toolbar-header-' + app);
+                if ( c && c.length > 1 ) {
+                    window.AscNative._call('theme:color', [JSON.stringify({ app: app, color: c.trim() })]);
+                    console.error('LSO_THEME_COLOR ' + app + ' ' + c.trim() + ' body=' + document.body.className);
+                }
+            } catch (e) {}
+        };
+
         const apply_theme = function (id) {
             window.uitheme.set_id(id);
 
@@ -450,6 +472,8 @@ define([
                 }
             }
             theme_props = {};
+
+            ohos_report_theme_color();
         }
 
         const refresh_theme = function (force, caller) {
@@ -526,6 +550,10 @@ define([
                 if ( !(Common.Utils.isIE10 || Common.Utils.isIE11) && !Common.Controllers.Desktop.isActive() )
                     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', on_system_theme_dark.bind(this));
                 Common.NotificationCenter.on('document:ready', on_document_ready.bind(this));
+
+                // [OHOS: theme] 初始主题上报（apply_theme 挂点覆盖切换路径；初始
+                // 路径 body class 由 themeinit 同步写就，此处直报一次即可）
+                ohos_report_theme_color();
             },
 
             available: function () {
