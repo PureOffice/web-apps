@@ -226,6 +226,15 @@ module.exports = function(grunt) {
             defaultConfig = configFile;
             packageFile = require('./' + defaultConfig);
 
+            // [OHOS-build] 产品版本注入：{{PRODUCT_VERSION}} 占位替换（About 版本行
+            // writeVersion）读 packageFile.version——官方原本在 increment-build 任务内
+            // 赋值（env 优先），该任务因「构建号递增写回源树」已移除（PureOffice 阶段 0），
+            // 其 env 赋值兼职随之丢失，产物版本恒为各 json 静态值（4.3.0.x）。此处
+            // 补回赋值（无 build 递增/写回），env 未设时保持官方原值。
+            if (packageFile && process.env['PRODUCT_VERSION']) {
+                packageFile.version = process.env['PRODUCT_VERSION'];
+            }
+
             if (packageFile) {
                 grunt.log.ok(appName + ' config loaded successfully'.green);
 
@@ -419,7 +428,11 @@ module.exports = function(grunt) {
                     overwrite: true,
                     replacements: [{
                         from: /\{\{PRODUCT_VERSION\}\}/g,
-                        to: `${packageFile.version}.${packageFile.build}`
+                        // [OHOS-build] 纯产品版本（对齐上文 api 单元同占位替换的官方
+                        // 形态）：官方此处拼 `.build` 构建号——本工程版本=AppScope
+                        // app.json5 versionName（三段），web-apps json 的静态 build 号
+                        // 与产品无关，拼入误导（曾显示 4.3.0.1150 / 1.0.48.1150）
+                        to: packageFile.version
                     }, ...global.jsreplacements]
                 },
                 prepareHelp: {

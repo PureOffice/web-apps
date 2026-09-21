@@ -39,7 +39,7 @@
  *
  */
 
-define([], function () {
+define(['common/main/lib/component/BaseView'], function () {
     'use strict';
 
     var _CustomItem = Common.UI.DataViewItem.extend({

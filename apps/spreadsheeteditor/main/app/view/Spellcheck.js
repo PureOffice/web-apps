@@ -36,7 +36,7 @@
  * Date: 30.07.19
  */
 
-define([], function () {
+define(['common/main/lib/component/BaseView'], function () {
     'use strict';
 
     SSE.Views.Spellcheck = Common.UI.BaseView.extend(_.extend({
