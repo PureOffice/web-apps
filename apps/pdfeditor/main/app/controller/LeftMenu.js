@@ -559,8 +559,24 @@ define([
                 if (type == 'blank' && this.mode.canRequestCreateNew)
                     Common.Gateway.requestCreateNew();
                 else {
-                    var newDocumentPage = window.open(type == 'blank' ? this.mode.createUrl : type, "_blank");
-                    if (newDocumentPage) newDocumentPage.focus();
+                    // [OHOS: create] desktop:// 是官方 CEF 原生层自定义协议——本壳
+                    // WebView 当普通 URL 导航会整页白屏（真机实证）。转壳层命令
+                    // create:new（execCommand → 宿主 openNewFile 开新 tab，与欢迎页
+                    // 新建卡片同源）；类型判据与官方 SSE/PE 命名空间同。其余 URL
+                    // 原样 window.open。原 ascshim 30_open 3.9 的 window.open 全局
+                    // 覆写源码化（本分支只拦 desktop://，语义精确等价）。
+                    var _ohosUrl = type == 'blank' ? this.mode.createUrl : type;
+                    if ( _ohosUrl && String(_ohosUrl).indexOf('desktop://') === 0 ) {
+                        try {
+                            var _ohosT = window.SSE ? 'cell' : window.PE ? 'slide' : 'word';
+                            if (window.AscNative && window.AscNative._call) {
+                                window.AscNative._call('execCommand', ['create:new', _ohosT]);
+                            }
+                        } catch (e) { console.error('LSO_CREATE_NEW_ERR ' + String(e)); }
+                    } else {
+                        var newDocumentPage = window.open(_ohosUrl, "_blank");
+                        if (newDocumentPage) newDocumentPage.focus();
+                    }
                 }
             }
 
