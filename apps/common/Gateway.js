@@ -350,6 +350,16 @@ if (window.Common === undefined) {
             },
 
             requestClose: function() {
+                // [OHOS: close] web 语义=上报宿主壳关闭（postMessage 到父帧——
+                // 顶层页无接收者）；本页即宿主 → 直接回官方欢迎页（与 goback 同构，
+                // 语言=URL lang 保持中文。原 ascshim 40_save 3.8.2b 对本方法的
+                // 实例覆写源码化；官方「放弃修改并离开」弹框链保留——tab×/返回键
+                // 的三按钮守卫在宿主层）。
+                if (window.AscNative) {
+                    console.error('LSO_REQUEST_CLOSE -> welcome');
+                    try { window.location.href = 'http://localhost/onlyoffice/index.html?lang=zh-CN'; } catch (e) {}
+                    return;
+                }
                 _postMessage({event: 'onRequestClose'});
             },
 
@@ -443,6 +453,28 @@ if (window.Common === undefined) {
             },
 
             saveDocument: function(data) {
+                // [OHOS: save] 保存落盘直连（原 ascshim 40_save 3.8.2b 同段的
+                // 3.8.3 实例覆写源码化）：web 服务器链=postMessage 上传——本壳无
+                // 服务器；base64 → execCommand('save:bin') → 宿主 x2t 落盘（与
+                // [OHOS: save] asc_Save 链同一条 execCommand 通道，用户保存语义
+                // 第三参=1 补录 recents）。200MB 上限为不落盘防护线。完成后复位
+                // 官方保存中状态（本地链无完成通道）。
+                if (window.AscNative && data) {
+                    console.error('LSO_SAVEDOC len=' + (data.byteLength || data.length));
+                    try {
+                        var _u8 = data instanceof Uint8Array ? data : new Uint8Array(data);
+                        if (_u8.length > 200 * 1024 * 1024) { console.error('LSO_SAVEDOC_TOOBIG ' + _u8.length); return; }
+                        var _r = window.AscNative._call('execCommand',
+                            ['save:bin', AscCommon.Base64.encode(_u8, 0, _u8.byteLength, false), 1]);
+                        console.error('LSO_SAVEDOC_CALL ret=' + String(_r).slice(0, 60));
+                        try {
+                            if (typeof window.editor !== 'undefined' && window.editor && typeof window.editor._onSaveCallback === 'function') {
+                                window.editor._onSaveCallback(null);
+                            }
+                        } catch (scx2) {}
+                    } catch (se) { console.error('LSO_SAVEDOC_ERR ' + String(se)); }
+                    return;
+                }
                 data && _postMessage({
                     event: 'onSaveDocument',
                     data: data.buffer

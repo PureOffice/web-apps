@@ -763,6 +763,15 @@ define([
             },
 
             closeEditor: function() {
+                // [OHOS: close] 关闭请求转宿主（原 ascshim 40_save 3.8.5 实例
+                // 覆写源码化）：不进官方 web 弹框（无「保存」项、假设服务器已
+                // 自动保存——离线单机不成立），转 editor:event close-request →
+                // 宿主统一三按钮守卫（保存/不保存/取消，与 tab×、返回键同框）。
+                if ( window.AscNative && typeof window.AscNative._call === 'function' ) {
+                    console.error('LSO_CLOSE_EDITOR -> close-request');
+                    window.AscNative._call('execCommand', ['editor:event', JSON.stringify({action: 'close-request'})]);
+                    return;
+                }
                 this.appOptions.canRequestClose && this.onRequestClose();
             },
 
