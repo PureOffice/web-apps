@@ -483,6 +483,21 @@ define([
                 });
                 _group.appendTo(me.$toolbarPanelPlugins);
                 if (me.backgroundPlugins.length > 0) {
+                    // [OHOS: plugins] 修复官方缺口（原 ascshim 30_open 3.6 对
+                    // parsePlugins 的 wrap 修复，源码化）：background 插件在上面
+                    // 循环首部 early-return，不经过 rank 分支的
+                    // addBackgroundPluginsButton——插件集仅含 background 类时
+                    //（如单装 AI 插件）按钮从未创建，此处直接 show() 抛
+                    // TypeError，异常冒泡中断 refreshPluginsList（插件 tab 保持
+                    // display:none）。缺失时按官方 addBackgroundPluginsButton
+                    // 同款补建（create → 官方 slot 结构 → hide，show 由外层控制）。
+                    if (!me.viewPlugins.backgroundBtn) {
+                        me.viewPlugins.backgroundBtn = me.viewPlugins.createBackgroundPluginsButton();
+                        var _ohosGrp = $('<div class="group"></div>').appendTo(me.$toolbarPanelPlugins);
+                        var _ohosSlot = $('<span class="btn-slot text x-huge" id="slot-background-plugin"></span>').appendTo(_ohosGrp);
+                        me.viewPlugins.backgroundBtn.render(_ohosSlot);
+                        me.viewPlugins.backgroundBtn.hide();
+                    }
                     me.viewPlugins.backgroundBtn.show();
                     var onShowBefore = function (menu) {
                         me.onShowBeforeBackgroundPlugins(menu);
