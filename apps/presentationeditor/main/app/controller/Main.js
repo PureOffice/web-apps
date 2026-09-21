@@ -3143,7 +3143,27 @@ define([
             },
 
             loadBinary: function(data) {
-                data && this.api.asc_openDocumentFromBytes(new Uint8Array(data));
+                // [OHOS: engine] DI 打开链踢闸（原 ascshim 10_engine 对 Gateway.on 的
+                // wrap，源码化）：本壳无协同服务器，官方服务器链的
+                // onFirstLoadChangesEnd 永不触发 → ServerIdWaitComplete 恒假 →
+                // _openDocumentEndCallback 门槛（word/cell/slide api.js）永不过，
+                // GUI 完成链不驱动。字节注入后补发「服务器首载完成」（与
+                // CoAuthoringApi.onFirstLoadChangesEnd 同语义）；slide 另有 images
+                // 闸门（ServerImagesWaitComplete）一并补发。守卫：方法存在性 +
+                // 未完成位，重复调用无害。正式环境用服务器/桌面链时本节应删除。
+                if ( !data ) return;
+                console.error('LSO_GW_BIN len=' + data.byteLength);
+                this.api.asc_openDocumentFromBytes(new Uint8Array(data));
+                try {
+                    if ( typeof this.api.asyncServerIdEndLoaded === 'function' && !this.api.ServerIdWaitComplete ) {
+                        this.api.asyncServerIdEndLoaded();
+                        console.error('LSO_KICK_SERVERID (engine adapt)');
+                    }
+                    if ( typeof this.api.asyncImagesDocumentEndLoaded === 'function' && !this.api.ServerImagesWaitComplete ) {
+                        this.api.asyncImagesDocumentEndLoaded();
+                        console.error('LSO_KICK_IMAGES (engine adapt)');
+                    }
+                } catch (e) { console.error('LSO_KICK_ERR ' + String(e)); }
             },
 
             // Translation
