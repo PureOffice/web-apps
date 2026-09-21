@@ -880,6 +880,13 @@ define([
 
                 if ( role == 'left' && (!config || !config.isDesktopApp)) {
                     $html = $(templateLeftBox);
+                    // [OHOS: header] 左上产品 logo 不显示（原页面适配层 DOM 兜底源码化）：
+                    // 官方 logo.visible=false 语义挂在 setBranding，而其调用受 canBranding
+                    // 许可闸门——无许可时三格式头部 logo 残留。隐藏整个 left 槽（section.logo
+                    // 根）防留空位。AscNative=宿主特征判据（同 Desktop.js [OHOS: menu]）。
+                    if ( window.AscNative ) {
+                        $html.addClass('hidden');
+                    }
                     this.logo = $html.find('#header-logo');
                     var logo = this.getSuitableLogo(this.branding, config);
                     this.logo.toggleClass('logo-light', logo.isLight);
@@ -961,12 +968,17 @@ define([
                             me.btnUserName.cmpEl.removeClass('hidden');
                         } else {
                             me.elUserName = $html.find('.btn-current-user');
-                            me.elUserName.removeClass('hidden');
+                            // [OHOS: header] 头部用户头像圈不显示——官方 else 分支无条件
+                            // 显示且无配置开关（原页面适配层 DOM 隐藏源码化）
+                            if ( !window.AscNative ) me.elUserName.removeClass('hidden');
                         }
                         $btnUserName = $html.find('.color-user-name');
                         me.setUserName(me.options.userName);
 
-                        if ( config.canCloseEditor )
+                        // [OHOS: header] 头部右上关闭按钮不显示（关闭入口=宿主 tab×/
+                        // 返回键/文件菜单「关闭」；不用 customization.close.visible=false
+                        // ——那会把文件菜单关闭入口一并关掉。原页面适配层 DOM 隐藏源码化）
+                        if ( config.canCloseEditor && !window.AscNative )
                             me.btnClose = createTitleButton('toolbar__icon icon--inverse btn-close', $html.findById('#slot-btn-close'), false, 'bottom', 'big');
                     }
 
@@ -1067,12 +1079,14 @@ define([
                     }
                     else {
                         me.elUserName = $html.find('.btn-current-user');
-                        me.elUserName.removeClass('hidden');
+                        // [OHOS: header] 头部用户头像圈不显示（同上 compactHeader 分支）
+                        if ( !window.AscNative ) me.elUserName.removeClass('hidden');
                     }
                     $btnUserName = $html.find('.color-user-name');
                     me.setUserName(me.options.userName);
 
-                    if ( config.canCloseEditor )
+                    // [OHOS: header] 头部右上关闭按钮不显示（同上 compactHeader 分支）
+                    if ( config.canCloseEditor && !window.AscNative )
                         me.btnClose = createTitleButton('toolbar__icon icon--inverse btn-close', $html.findById('#slot-btn-close'), false, 'left', '10, 10');
 
                     if ( config.canPrint && config.twoLevelHeader ) {
