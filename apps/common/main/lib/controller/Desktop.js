@@ -588,6 +588,15 @@ define([
         const _extend_menu_file = function (args) {
             console.log('extend menu file')
 
+            // [OHOS: menu] 不注入「用模板创建」（2026-09-08 查明）：模板列表走桌面
+            // 原生桥 LocalFileTemplates，本壳离线恒空——空入口不显示（用户决策，
+            // 与欢迎页「模板」项同批）；且官方此函数每次 Desktop.init 重入注入、
+            // 无防重（同 id 菜单项叠多条），跳过注入一并消除。原 ascshim 侧
+            // MutationObserver 删节点退役。
+            if ( window.AscNative ) {
+                return;
+            }
+
             // if ( native.features.opentemplate )
             {
                 const filemenu = webapp.getController('LeftMenu').leftMenu.getMenu('file');
