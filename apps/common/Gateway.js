@@ -351,13 +351,16 @@ if (window.Common === undefined) {
 
             requestClose: function() {
                 // [OHOS: close] web 语义=上报宿主壳关闭（postMessage 到父帧——
-                // 顶层页无接收者）；本页即宿主 → 直接回官方欢迎页（与 goback 同构，
-                // 语言=URL lang 保持中文。原 ascshim 40_save 3.8.2b 对本方法的
-                // 实例覆写源码化；官方「放弃修改并离开」弹框链保留——tab×/返回键
-                // 的三按钮守卫在宿主层）。
+                // 顶层页无接收者）；本页即宿主 → 直接回官方欢迎页（与 goback 同构）。
+                // 原 ascshim 40_save 3.8.2b 对本方法的实例覆写源码化；官方「放弃修改
+                // 并离开」弹框链保留——tab×/返回键的三按钮守卫在宿主层。
+                // 语言=当前页 URL 的 lang 参数（宿主 EditorPage 传入，2026-09-25 起
+                // 跟随系统语言）。写死中文会让英文系统下「关闭文档 → 欢迎页」语言突变。
                 if (window.AscNative) {
                     console.error('LSO_REQUEST_CLOSE -> welcome');
-                    try { window.location.href = 'http://localhost/onlyoffice/index.html?lang=zh-CN'; } catch (e) {}
+                    var _lq = /[?&]lang=([^&]+)/.exec(window.location.search || '');
+                    var _lang = _lq ? decodeURIComponent(_lq[1]) : 'en';   // 缺省英文（同 spec §6 决策 1）
+                    try { window.location.href = 'http://localhost/onlyoffice/index.html?lang=' + _lang; } catch (e) {}
                     return;
                 }
                 _postMessage({event: 'onRequestClose'});
