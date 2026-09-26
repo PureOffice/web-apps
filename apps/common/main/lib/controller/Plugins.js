@@ -257,8 +257,15 @@ define([
                 arr.push(plugin);
             });
             this.api.asc_pluginsRegister('', arr);
-            if (storePlugins.hasVisible())
-                Common.NotificationCenter.trigger('tab:visible', 'plugins', Common.UI.LayoutManager.isElementVisible('toolbar-plugins'));
+            // [OHOS: plugins] 插件入口收编：AI 为常驻功能，官方自注册 AI tab 即唯一入口
+            // （sdkjs register() 对 bundled background 插件自动 run —— apiBase_plugins.js
+            // getUsedBackgroundPlugins 把非用户安装的背景插件无条件并入，asc_plugins_
+            // background_stopped 停用列表不参与 run 门链，bundled 语义即永动）。工具栏
+            // 不再需要「插件」聚合 tab：addTab 模板（Mixtbar.js）恒 display:none，下面这
+            // 条 trigger 是它唯一显示写点（tab:visible → Mixtbar.setVisible），注释即隐
+            // 藏；viewer 态本就走这条隐藏路径。保留收集以维持官方链形状，勿删判断本身。
+            // if (storePlugins.hasVisible())
+            //     Common.NotificationCenter.trigger('tab:visible', 'plugins', Common.UI.LayoutManager.isElementVisible('toolbar-plugins'));
             Common.Gateway.pluginsReady();
         },
 
